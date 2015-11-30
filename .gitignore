@@ -1,0 +1,5 @@
+work/
+build/
+target/
+.gradle/
+.DS_Store
