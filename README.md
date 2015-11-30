@@ -23,7 +23,7 @@ This plugin adds an installer for Terraform and provides a build wrapper for cre
 
 This plugin uses gradle wrapper, so the only dependency is a working JDK (7/8).
 
-* To build the .hpi plugin (build/libs/slack-webhook-plugin.hpi)
+* To build the .hpi plugin (build/libs/jenkins-terraform.hpi)
 ```
 ./gradlew jpi
 ```
