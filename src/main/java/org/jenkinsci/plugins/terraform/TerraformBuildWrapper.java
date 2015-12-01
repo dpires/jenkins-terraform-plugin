@@ -13,6 +13,7 @@ import hudson.model.BuildListener;
 import hudson.model.AbstractProject;
 
 import hudson.util.ListBoxModel;
+import hudson.util.FormValidation;
 import hudson.util.ArgumentListBuilder;
 
 import hudson.tasks.Recorder;
@@ -25,6 +26,7 @@ import hudson.tasks.BuildWrapperDescriptor;
 import hudson.model.Descriptor.FormException;
 
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -239,6 +241,32 @@ public class TerraformBuildWrapper extends BuildWrapper {
                 m.add(inst.getName());
             }
             return m;
+        }
+
+        
+        public boolean isInlineConfigChecked(TerraformBuildWrapper instance) {
+            boolean result = true;
+            if (instance != null)
+                return (instance.getInlineConfig() != null); 
+
+            return result;
+        }
+
+
+        public boolean isFileConfigChecked(TerraformBuildWrapper instance) {
+            boolean result = false;
+            if (instance != null)
+                return (instance.getFileConfig() != null); 
+
+            return result;
+        }
+
+
+        public FormValidation doCheckTerraformInstallation(@QueryParameter String value) {
+            if (value == null || value.trim().isEmpty())
+                return FormValidation.error("Terraform installation required. Please install a version of Terraform");
+
+            return FormValidation.ok();
         }
 
 
