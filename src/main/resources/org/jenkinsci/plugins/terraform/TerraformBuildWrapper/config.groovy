@@ -10,12 +10,12 @@ f.block() {
                 f.select();
             }
 
-            f.radioBlock(name: 'config', value: 'inline', title: 'Configuration Text', checked: (instance.getInlineConfig()==null) ? false : true ) {
+            f.radioBlock(checked: descriptor.isInlineConfigChecked(instance), name: 'config', value: 'inline', title: 'Configuration Text') {
                 f.entry(title: 'Terraform Text Configuration', field: 'inlineConfig', description: 'Inline configuration') { 
                     f.textarea(); 
                 }
             }
-            f.radioBlock(name: 'config', value: 'file', title: 'Configuration Path', checked: (instance.getFileConfig()==null) ? false : true) {
+            f.radioBlock(checked: descriptor.isFileConfigChecked(instance), name: 'config', value: 'file', title: 'Configuration Path') {
                 f.entry(title: 'Terraform File Configuration', field: 'fileConfig', description: 'Relative Path to workspace directory containing .tf configurations') { 
                     f.textbox(); 
                 }
