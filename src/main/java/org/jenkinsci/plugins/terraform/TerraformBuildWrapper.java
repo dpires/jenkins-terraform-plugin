@@ -161,7 +161,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
             args.add("apply");
 
             if (getVariables() != null && !getVariables().equals("")) {
-                FilePath variablesFile = workspacePath.createTextTempFile("variables", "tf", getVariables());
+                FilePath variablesFile = workspacePath.createTextTempFile("variables", ".tf", getVariables());
                 this.variablesFile = variablesFile;
                 args.add("-var-file="+variablesFile.getRemote());
             }
