@@ -120,7 +120,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
     }
 
 
-    private String getExecutable(EnvVars env, BuildListener listener) throws IOException, InterruptedException {
+    public String getExecutable(EnvVars env, BuildListener listener) throws IOException, InterruptedException {
         TerraformInstallation terraform = getInstallation().forNode(Computer.currentComputer().getNode(), listener).forEnvironment(env);
         return terraform.getExecutablePath(launcher);
     }
