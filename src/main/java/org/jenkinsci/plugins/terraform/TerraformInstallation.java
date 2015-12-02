@@ -13,6 +13,7 @@ import hudson.model.Node;
 import hudson.model.TaskListener;
 
 import hudson.tools.ToolProperty;
+import hudson.tools.ToolInstaller;
 import hudson.tools.ToolDescriptor;
 import hudson.tools.ToolInstallation;
 
@@ -21,6 +22,7 @@ import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.util.List;
+import java.util.Collections;
 
 import java.io.File;
 import java.io.IOException;
@@ -88,6 +90,12 @@ public class TerraformInstallation extends ToolInstallation {
         @Override
         public String getDisplayName() {
             return "Terraform";
+        }
+
+
+        @Override
+        public List<? extends ToolInstaller> getDefaultInstallers() {
+            return Collections.singletonList(new TerraformInstaller(null));
         }
 
 
