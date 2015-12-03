@@ -262,14 +262,6 @@ public class TerraformBuildWrapper extends BuildWrapper {
         }
 
 
-        public FormValidation doCheckTerraformInstallation(@QueryParameter String value) {
-            if (value == null || value.trim().isEmpty())
-                return FormValidation.error("Terraform installation required. Please install a version of Terraform");
-
-            return FormValidation.ok();
-        }
-
-
         public boolean isApplicable(AbstractProject<?, ?> project) {
             return true;
         }
