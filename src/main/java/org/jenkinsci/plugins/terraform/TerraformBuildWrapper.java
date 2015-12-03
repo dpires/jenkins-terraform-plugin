@@ -44,12 +44,11 @@ import java.io.FileNotFoundException;
 
 public class TerraformBuildWrapper extends BuildWrapper {
 
-    private Launcher launcher;
-    private FilePath variablesFile;
     private final String variables;
     private final boolean doDestroy;
     private final Configuration config;
     private final String terraformInstallation;
+    private FilePath variablesFile;
 
     private static final Logger LOGGER = Logger.getLogger(TerraformBuildWrapper.class.getName());
 
@@ -120,21 +119,21 @@ public class TerraformBuildWrapper extends BuildWrapper {
     }
 
 
-    public String getExecutable(EnvVars env, BuildListener listener) throws IOException, InterruptedException {
+    public String getExecutable(EnvVars env, BuildListener listener, Launcher launcher) throws IOException, InterruptedException {
         TerraformInstallation terraform = getInstallation().forNode(Computer.currentComputer().getNode(), listener).forEnvironment(env);
         return terraform.getExecutablePath(launcher);
     }
 
 
     @Override
-    public Environment setUp(AbstractBuild build, Launcher launcher, BuildListener listener) {
+    public Environment setUp(AbstractBuild build, final Launcher launcher, final BuildListener listener) {
+
         ArgumentListBuilder args = new ArgumentListBuilder();
-        this.launcher = launcher;
             
         try {
             EnvVars env = build.getEnvironment(listener);
 
-            String executable = getExecutable(env, listener);
+            String executable = getExecutable(env, listener, launcher);
 
             args.add(executable);
 
@@ -142,17 +141,15 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
             FilePath config = null;
 
-            if (getInlineConfig() != null && !getInlineConfig().equals("")) {
+            if (!isNullOrEmpty(getInlineConfig())) {
                 config = workspacePath.createTextTempFile("terraform", ".tf", getInlineConfig());
                 if (config == null || !config.exists()) {
-                    listener.getLogger().append("Could not find configuration file");
                     throw new FileNotFoundException("Configuration not found: "+config);
                 }
             } else {
-                if (getFileConfig() != null && !getFileConfig().equals("")) {
+                if (!isNullOrEmpty(getFileConfig())) {
                     workspacePath = new FilePath(build.getWorkspace(), getFileConfig());
                     if (!workspacePath.isDirectory()) {
-                        listener.getLogger().append("Configuration path not found, configuration path should be relative to the workspace directory");
                         throw new FileNotFoundException("Configuration path not found");
                     }
                 }
@@ -160,46 +157,55 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
             args.add("apply");
 
-            if (getVariables() != null && !getVariables().equals("")) {
-                FilePath variablesFile = workspacePath.createTextTempFile("variables", ".tf", getVariables());
-                this.variablesFile = variablesFile;
+            if (!isNullOrEmpty(getVariables())) {
+                variablesFile = workspacePath.createTextTempFile("variables", ".tf", getVariables());
                 args.add("-var-file="+variablesFile.getRemote());
             }
 
             int result = launcher.launch().pwd(workspacePath.getRemote()).cmds(args).stdout(listener).join();
     
         } catch (Exception ex) {
-            listener.getLogger().append("Build failure: "+exceptionToString(ex));
+            listener.getLogger().append(exceptionToString(ex));
             LOGGER.severe(exceptionToString(ex));
         }
         
         return new Environment() {
+
             @Override
             public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
-                return doTearDown(build, listener);
+                if (doDestroy()) {
+
+                    ArgumentListBuilder args = new ArgumentListBuilder();
+
+                    try {
+                        EnvVars env = build.getEnvironment(listener);
+
+                        args.add(getExecutable(env, listener, launcher));
+
+                        args.add("destroy");
+
+                        args.add("--force");
+
+                        if (!isNullOrEmpty(getVariables())) {
+                            args.add("-var-file="+variablesFile.getRemote());
+                        }
+
+                        int result = launcher.launch().pwd(build.getWorkspace().getRemote()).cmds(args).stdout(listener).join();
+
+                    } catch (Exception ex) {
+                        listener.getLogger().append(exceptionToString(ex));
+                        LOGGER.severe(exceptionToString(ex));
+                        return false;
+                    }
+                }
+                return true;
             }
         };
     }
 
 
-    public boolean doTearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
-        if (doDestroy()) {
-            ArgumentListBuilder args = new ArgumentListBuilder();
-            try {
-                EnvVars env = build.getEnvironment(listener);
-                args.add(getExecutable(env, listener));
-                args.add("destroy");
-                args.add("--force");
-                if (getVariables() != null && !getVariables().equals("")) {
-                    args.add("-var-file="+variablesFile.getRemote());
-                }
-                int result = launcher.launch().pwd(build.getWorkspace().getRemote()).cmds(args).stdout(listener).join();
-            } catch (Exception ex) {
-                listener.getLogger().append("Build failure: "+exceptionToString(ex));
-                LOGGER.severe(exceptionToString(ex));
-                return false;    
-            }
-        }
+    private boolean isNullOrEmpty(String value) {
+        if (value == null || value.trim().isEmpty()) return true;
         return true;
     }
 
