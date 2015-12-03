@@ -16,17 +16,17 @@ f.block() {
                 }
             }
             f.radioBlock(checked: descriptor.isFileConfigChecked(instance), name: 'config', value: 'file', title: 'Configuration Path') {
-                f.entry(title: 'Terraform File Configuration', field: 'fileConfig', description: 'Relative Path to workspace directory containing .tf configurations') { 
+                f.entry(title: 'Terraform File Configuration', field: 'fileConfig', description: 'Relative Path to workspace directory containing configuration files') { 
                     f.textbox(); 
                 }
             }
 
-            f.entry(field: 'variables', title: _('Optional Parameters'), description: 'Optional variables, these will be written to a variable file and passed to terraform with -var-file') {
+            f.entry(field: 'variables', title: _('Resource Variables (Optional)'), description: 'Resource variables will be passed to Terraform as a file') {
                 f.textarea();
             }
 
             f.advanced() {
-                f.entry(field: 'doDestroy', title: _('Destroy infrastructure on completion'), description: 'Run -destroy to delete infrastructure on build completion') {
+                f.entry(field: 'doDestroy', title: _('Destroy On Build Completion'), description: 'Run destroy command to delete infrastructure on build completion') {
                     f.checkbox();
                 }
             }
