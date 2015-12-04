@@ -7,14 +7,17 @@ import hudson.Launcher;
 import hudson.Extension;
 import hudson.CopyOnWrite;
 
+import hudson.util.ListBoxModel;
+import hudson.util.FormValidation;
+import hudson.util.ArgumentListBuilder;
+
+import hudson.model.Result;
 import hudson.model.Computer;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.AbstractProject;
 
-import hudson.util.ListBoxModel;
-import hudson.util.FormValidation;
-import hudson.util.ArgumentListBuilder;
+import hudson.model.Descriptor.FormException;
 
 import hudson.tasks.Recorder;
 import hudson.tasks.Publisher;
@@ -22,8 +25,6 @@ import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildWrapperDescriptor;
-
-import hudson.model.Descriptor.FormException;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.QueryParameter;
@@ -35,8 +36,8 @@ import net.sf.json.JSONObject;
 import java.util.logging.Logger;
 
 import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.io.FileNotFoundException;
 
 
@@ -48,6 +49,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
     private final boolean doDestroy;
     private final Configuration config;
     private final String terraformInstallation;
+    private FilePath configFile;
     private FilePath variablesFile;
 
     private static final Logger LOGGER = Logger.getLogger(TerraformBuildWrapper.class.getName());
@@ -126,7 +128,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
 
     @Override
-    public Environment setUp(AbstractBuild build, final Launcher launcher, final BuildListener listener) {
+    public Environment setUp(AbstractBuild build, final Launcher launcher, final BuildListener listener) throws IOException, InterruptedException {
 
         ArgumentListBuilder args = new ArgumentListBuilder();
             
@@ -139,18 +141,16 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
             FilePath workspacePath = build.getWorkspace();
 
-            FilePath config = null;
-
             if (!isNullOrEmpty(getInlineConfig())) {
-                config = workspacePath.createTextTempFile("terraform", ".tf", getInlineConfig());
-                if (config == null || !config.exists()) {
-                    throw new FileNotFoundException("Configuration not found: "+config);
+                configFile = workspacePath.createTextTempFile("terraform", ".tf", getInlineConfig());
+                if (configFile == null || !configFile.exists()) {
+                    throw new FileNotFoundException("Configuration could not be created.");
                 }
             } else {
                 if (!isNullOrEmpty(getFileConfig())) {
                     workspacePath = new FilePath(build.getWorkspace(), getFileConfig());
                     if (!workspacePath.isDirectory()) {
-                        throw new FileNotFoundException("Configuration path not found");
+                        throw new FileNotFoundException(String.format("Configuration path not found [%s]", workspacePath));
                     }
                 }
             }
@@ -163,16 +163,24 @@ public class TerraformBuildWrapper extends BuildWrapper {
             }
 
             int result = launcher.launch().pwd(workspacePath.getRemote()).cmds(args).stdout(listener).join();
+
+            if (result != 0) {
+                deleteTemporaryFiles();
+                return null;
+            }
     
         } catch (Exception ex) {
-            listener.getLogger().append(exceptionToString(ex));
             LOGGER.severe(exceptionToString(ex));
+            listener.fatalError(exceptionToString(ex));
+            deleteTemporaryFiles();
+            return null;
         }
         
         return new Environment() {
 
             @Override
             public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
+
                 if (doDestroy()) {
 
                     ArgumentListBuilder args = new ArgumentListBuilder();
@@ -192,21 +200,38 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
                         int result = launcher.launch().pwd(build.getWorkspace().getRemote()).cmds(args).stdout(listener).join();
 
+                        if (result != 0) {
+                            deleteTemporaryFiles();
+                            return false;
+                        }
+
                     } catch (Exception ex) {
-                        listener.getLogger().append(exceptionToString(ex));
                         LOGGER.severe(exceptionToString(ex));
+                        listener.fatalError(exceptionToString(ex));
+                        deleteTemporaryFiles();
                         return false;
                     }
                 }
+
+                deleteTemporaryFiles();
+
                 return true;
             }
         };
     }
 
 
+    private void deleteTemporaryFiles() throws IOException, InterruptedException {
+        if (variablesFile != null && variablesFile.exists())
+            variablesFile.delete();
+
+        if (configFile != null && configFile.exists())
+            configFile.delete();
+    }
+
+
     private boolean isNullOrEmpty(String value) {
-        if (value == null || value.trim().isEmpty()) return true;
-        return true;
+        return (value == null || value.trim().isEmpty()) ? true : false;
     }
 
 
