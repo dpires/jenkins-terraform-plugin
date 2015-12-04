@@ -6,7 +6,7 @@
 
 This plugin adds an installer for Terraform and provides a build wrapper for creating and destroying infrastructure.
 
-The installer generates a list of Terraform binary's for installation from [bintray.com](http://bintray.com), see [Terraform Crawler](https://github.com/jenkinsci/backend-crawler/blob/master/terraform.groovy).
+The installer generates a list of Terraform binaries for installation from [bintray.com](http://bintray.com), see [Terraform Crawler](https://github.com/jenkinsci/backend-crawler/blob/master/terraform.groovy).
 
 See the Jenkins plugin wiki for more details: [Terraform Plugin Wiki](https://wiki.jenkins-ci.org/display/JENKINS/Terraform+Plugin).
 
