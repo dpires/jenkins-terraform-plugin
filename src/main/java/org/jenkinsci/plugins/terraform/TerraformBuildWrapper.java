@@ -49,9 +49,11 @@ public class TerraformBuildWrapper extends BuildWrapper {
     private final boolean doDestroy;
     private final Configuration config;
     private final String terraformInstallation;
+    private FilePath stateFile;
     private FilePath configFile;
     private FilePath variablesFile;
-    private FilePath stateFile;
+    private FilePath workspacePath;
+    private FilePath workingDirectory;
 
     private static final String WORK_DIR_NAME = "terraform-plugin";
     private static final String STATE_FILE_NAME = "terraform-plugin.tfstate";
@@ -69,6 +71,11 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
     public Configuration getConfig() {
         return this.config;
+    }
+
+
+    public Configuration.Mode getMode() {
+        return this.config.getMode();
     }
 
 
@@ -142,26 +149,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
             args.add(executable);
 
-            FilePath workspacePath = build.getWorkspace();
-
-            FilePath workingDirectory = new FilePath(workspacePath, WORK_DIR_NAME);
-
-            stateFile = new FilePath(workingDirectory, STATE_FILE_NAME);
-
-            if (!isNullOrEmpty(getInlineConfig())) {
-                configFile = workingDirectory.createTextTempFile("terraform", ".tf", getInlineConfig());
-                workspacePath = workingDirectory;
-                if (configFile == null || !configFile.exists()) {
-                    throw new FileNotFoundException("Configuration could not be created.");
-                }
-            } else {
-                if (!isNullOrEmpty(getFileConfig())) {
-                    workspacePath = new FilePath(build.getWorkspace(), getFileConfig());
-                    if (!workspacePath.isDirectory()) {
-                        throw new FileNotFoundException(String.format("Configuration path not found [%s]", workspacePath));
-                    }
-                }
-            }
+            setupWorkspace(build);
 
             args.add("apply");
 
@@ -204,18 +192,6 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
                         args.add(getExecutable(env, listener, launcher));
 
-                        FilePath workspacePath = build.getWorkspace();
-
-                        FilePath workingDirectory = new FilePath(workspacePath, WORK_DIR_NAME);
-
-                        stateFile = new FilePath(workingDirectory, STATE_FILE_NAME);
-
-                        if (!isNullOrEmpty(getFileConfig())) {
-                            workspacePath = new FilePath(build.getWorkspace(), getFileConfig());
-                        } else {
-                            workspacePath = workingDirectory;
-                        }
-
                         args.add("destroy");
 
                         args.add("-input=false");
@@ -251,6 +227,36 @@ public class TerraformBuildWrapper extends BuildWrapper {
             }
         };
     }
+
+
+    private void setupWorkspace(AbstractBuild build) throws FileNotFoundException, Exception {
+        workingDirectory = new FilePath(build.getWorkspace(), WORK_DIR_NAME);
+
+        stateFile = new FilePath(workingDirectory, STATE_FILE_NAME);
+
+        switch (getMode()) {
+            case INLINE:
+                configFile = workingDirectory.createTextTempFile("terraform", ".tf", getInlineConfig());
+                workspacePath = workingDirectory;
+                if (configFile == null || !configFile.exists()) {
+                    throw new FileNotFoundException("Configuration could not be created.");
+                }
+                break;
+            case FILE:
+                if (!isNullOrEmpty(getFileConfig())) {
+                    workspacePath = new FilePath(build.getWorkspace(), getFileConfig());
+                    if (!workspacePath.isDirectory()) {
+                        throw new FileNotFoundException(String.format("Configuration path not found [%s]", workspacePath));
+                    }
+                } else {
+                    workspacePath = build.getWorkspace();
+                }
+                break;
+            default:
+                throw new Exception("Invalid Configuration Mode.");
+        }
+    }
+
 
 
     private void deleteTemporaryFiles() throws IOException, InterruptedException {
