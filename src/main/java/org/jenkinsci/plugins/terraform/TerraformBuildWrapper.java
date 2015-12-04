@@ -132,8 +132,14 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
 
     public String getExecutable(EnvVars env, BuildListener listener, Launcher launcher) throws IOException, InterruptedException {
-        TerraformInstallation terraform = getInstallation().forNode(Computer.currentComputer().getNode(), listener).forEnvironment(env);
-        return terraform.getExecutablePath(launcher);
+        String executablePath = null;
+        try {
+            TerraformInstallation terraform = getInstallation().forNode(Computer.currentComputer().getNode(), listener).forEnvironment(env);
+            executablePath = terraform.getExecutablePath(launcher);
+        } catch (NullPointerException ex) {
+            throw new IOException(Messages.InstallationNotFound());
+        }
+        return executablePath;
     }
 
 
