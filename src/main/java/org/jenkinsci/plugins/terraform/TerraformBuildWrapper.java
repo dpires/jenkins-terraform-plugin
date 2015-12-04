@@ -51,7 +51,10 @@ public class TerraformBuildWrapper extends BuildWrapper {
     private final String terraformInstallation;
     private FilePath configFile;
     private FilePath variablesFile;
+    private FilePath stateFile;
 
+    private static final String WORK_DIR_NAME = "terraform-plugin";
+    private static final String STATE_FILE_NAME = "terraform-plugin.tfstate";
     private static final Logger LOGGER = Logger.getLogger(TerraformBuildWrapper.class.getName());
 
 
@@ -141,8 +144,13 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
             FilePath workspacePath = build.getWorkspace();
 
+            FilePath workingDirectory = new FilePath(workspacePath, WORK_DIR_NAME);
+
+            stateFile = new FilePath(workingDirectory, STATE_FILE_NAME);
+
             if (!isNullOrEmpty(getInlineConfig())) {
-                configFile = workspacePath.createTextTempFile("terraform", ".tf", getInlineConfig());
+                configFile = workingDirectory.createTextTempFile("terraform", ".tf", getInlineConfig());
+                workspacePath = workingDirectory;
                 if (configFile == null || !configFile.exists()) {
                     throw new FileNotFoundException("Configuration could not be created.");
                 }
@@ -157,10 +165,16 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
             args.add("apply");
 
+            args.add("-input=false");
+
+            args.add("-state="+stateFile.getRemote());
+
             if (!isNullOrEmpty(getVariables())) {
-                variablesFile = workspacePath.createTextTempFile("variables", ".tfvars", getVariables());
+                variablesFile = workingDirectory.createTextTempFile("variables", ".tfvars", getVariables());
                 args.add("-var-file="+variablesFile.getRemote());
             }
+
+            LOGGER.info("Launching Terraform: "+args.toString());
 
             int result = launcher.launch().pwd(workspacePath.getRemote()).cmds(args).stdout(listener).join();
 
@@ -190,7 +204,21 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
                         args.add(getExecutable(env, listener, launcher));
 
+                        FilePath workspacePath = build.getWorkspace();
+
+                        FilePath workingDirectory = new FilePath(workspacePath, WORK_DIR_NAME);
+
+                        stateFile = new FilePath(workingDirectory, STATE_FILE_NAME);
+
+                        if (!isNullOrEmpty(getFileConfig())) {
+                            workspacePath = new FilePath(build.getWorkspace(), getFileConfig());
+                        }
+
                         args.add("destroy");
+
+                        args.add("-input=false");
+
+                        args.add("-state="+stateFile.getRemote());
 
                         args.add("--force");
 
@@ -198,7 +226,9 @@ public class TerraformBuildWrapper extends BuildWrapper {
                             args.add("-var-file="+variablesFile.getRemote());
                         }
 
-                        int result = launcher.launch().pwd(build.getWorkspace().getRemote()).cmds(args).stdout(listener).join();
+                        LOGGER.info("Launching Terraform: "+args.toString());
+
+                        int result = launcher.launch().pwd(workspacePath.getRemote()).cmds(args).stdout(listener).join();
 
                         if (result != 0) {
                             deleteTemporaryFiles();
