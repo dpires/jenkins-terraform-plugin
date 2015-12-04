@@ -239,24 +239,23 @@ public class TerraformBuildWrapper extends BuildWrapper {
                 configFile = workingDirectory.createTextTempFile("terraform", ".tf", getInlineConfig());
                 workspacePath = workingDirectory;
                 if (configFile == null || !configFile.exists()) {
-                    throw new FileNotFoundException("Configuration could not be created.");
+                    throw new FileNotFoundException(Messages.ConfigurationNotCreated());
                 }
                 break;
             case FILE:
                 if (!isNullOrEmpty(getFileConfig())) {
                     workspacePath = new FilePath(build.getWorkspace(), getFileConfig());
                     if (!workspacePath.isDirectory()) {
-                        throw new FileNotFoundException(String.format("Configuration path not found [%s]", workspacePath));
+                        throw new FileNotFoundException(Messages.ConfigurationPathNotFound(workspacePath));
                     }
                 } else {
                     workspacePath = build.getWorkspace();
                 }
                 break;
             default:
-                throw new Exception("Invalid Configuration Mode.");
+                throw new Exception(Messages.InvalidConfigMode());
         }
     }
-
 
 
     private void deleteTemporaryFiles() throws IOException, InterruptedException {
@@ -337,7 +336,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
     
 
         public String getDisplayName() {
-            return "Terraform";
+            return Messages.BuildWrapperName();
         }
     }
 }

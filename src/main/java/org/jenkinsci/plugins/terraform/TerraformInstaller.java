@@ -23,7 +23,7 @@ public class TerraformInstaller extends DownloadFromUrlInstaller {
     public static final class DescriptorImpl extends DownloadFromUrlInstaller.DescriptorImpl<TerraformInstaller> {
         @Override
         public String getDisplayName() {
-            return "Install from bintray.com";
+            return Messages.InstallFromBintray();
         }
 
 

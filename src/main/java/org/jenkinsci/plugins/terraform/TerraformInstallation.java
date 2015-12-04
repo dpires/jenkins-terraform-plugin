@@ -60,18 +60,20 @@ public class TerraformInstallation extends ToolInstallation {
                 FilePath homeDirectory = new FilePath(new File(getHome()));
 
                 try {
-                if (!(homeDirectory.exists() && homeDirectory.isDirectory())) 
-                    throw new FileNotFoundException(String.format("Home directory not found. [%s]", homeDirectory));
+                    if (!(homeDirectory.exists() && homeDirectory.isDirectory())) 
+                        throw new FileNotFoundException(Messages.HomeDirectoryNotFound(homeDirectory));
                 } catch (InterruptedException ex) {
-
+                    throw new IOException(ex);
                 }
 
                 FilePath executable = new FilePath(homeDirectory, getExecutableFilename());
 
                 try {
-                if (!executable.exists())
-                    throw new FileNotFoundException(String.format("Executable not found. [%s]", homeDirectory));
-                } catch (InterruptedException ex) { }
+                    if (!executable.exists())
+                        throw new FileNotFoundException(Messages.ExecutableNotFound(homeDirectory));
+                } catch (InterruptedException ex) {
+                    throw new IOException(ex);
+                }
 
                 return executable.getRemote();
             }
