@@ -212,6 +212,8 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
                         if (!isNullOrEmpty(getFileConfig())) {
                             workspacePath = new FilePath(build.getWorkspace(), getFileConfig());
+                        } else {
+                            workspacePath = workingDirectory;
                         }
 
                         args.add("destroy");
