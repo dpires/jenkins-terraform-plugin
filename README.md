@@ -1,6 +1,6 @@
 # jenkins-terraform-plugin
 
-[![Build Status](https://travis-ci.org/dpires/jenkins-terraform-plugin.png?branch=master)](https://travis-ci.org/dpires/jenkins-terraform-plugin)
+[![Build Status](https://jenkins.ci.cloudbees.com/buildStatus/icon?job=plugins/terraform-plugin)](https://jenkins.ci.cloudbees.com/job/plugins/job/terraform-plugin/)
 
 ## Usage
 
