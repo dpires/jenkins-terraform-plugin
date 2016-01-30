@@ -33,7 +33,12 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import net.sf.json.JSONObject;
 
+import java.util.Map;
+
 import java.util.logging.Logger;
+
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import java.io.PrintWriter;
 import java.io.IOException;
@@ -155,7 +160,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
             args.add(executable);
 
-            setupWorkspace(build);
+            setupWorkspace(build, env);
 
             args.add("apply");
 
@@ -164,7 +169,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
             args.add("-state="+stateFile.getRemote());
 
             if (!isNullOrEmpty(getVariables())) {
-                variablesFile = workingDirectory.createTextTempFile("variables", ".tfvars", getVariables());
+                variablesFile = workingDirectory.createTextTempFile("variables", ".tfvars", evalEnvVars(getVariables(), env));
                 args.add("-var-file="+variablesFile.getRemote());
             }
 
@@ -235,14 +240,37 @@ public class TerraformBuildWrapper extends BuildWrapper {
     }
 
 
-    private void setupWorkspace(AbstractBuild build) throws FileNotFoundException, Exception {
+    private String evalEnvVars(String input, EnvVars env) throws Exception {
+        String envPattern = "\\$([A-Z-a-z_0-9]+)";
+
+        Pattern expr = Pattern.compile(envPattern);
+
+        Matcher matcher = expr.matcher(input);
+
+        String output = input;
+
+        while (matcher.find()) {
+            String envFound = env.get(matcher.group(1));
+
+            System.out.println(envFound);
+
+            if (envFound != null) {
+               output = output.replace("$"+matcher.group(1), envFound);
+            }
+        }
+
+        return output;
+    }
+
+
+    private void setupWorkspace(AbstractBuild build, EnvVars env) throws FileNotFoundException, Exception {
         workingDirectory = new FilePath(build.getWorkspace(), WORK_DIR_NAME);
 
         stateFile = new FilePath(workingDirectory, STATE_FILE_NAME);
 
         switch (getMode()) {
             case INLINE:
-                configFile = workingDirectory.createTextTempFile("terraform", ".tf", getInlineConfig());
+                configFile = workingDirectory.createTextTempFile("terraform", ".tf", evalEnvVars(getInlineConfig(), env));
                 workspacePath = workingDirectory;
                 if (configFile == null || !configFile.exists()) {
                     throw new FileNotFoundException(Messages.ConfigurationNotCreated());
