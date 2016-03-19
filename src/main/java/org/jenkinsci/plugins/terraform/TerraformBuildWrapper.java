@@ -252,8 +252,6 @@ public class TerraformBuildWrapper extends BuildWrapper {
         while (matcher.find()) {
             String envFound = env.get(matcher.group(1));
 
-            System.out.println(envFound);
-
             if (envFound != null) {
                output = output.replace("$"+matcher.group(1), envFound);
             }
