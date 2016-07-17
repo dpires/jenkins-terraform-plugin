@@ -10,6 +10,10 @@ f.block() {
                 f.select();
             }
 
+            f.entry(field:'doGetUpdate', title: _('Update modules'), description: 'Run terraform get with -update flag') {
+                f.checkbox();
+            }
+
             f.radioBlock(checked: descriptor.isInlineConfigChecked(instance), name: 'config', value: 'inline', title: 'Configuration Text') {
                 f.entry(title: 'Terraform Text Configuration', field: 'inlineConfig', description: 'Inline configuration') { 
                     f.textarea(); 

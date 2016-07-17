@@ -52,6 +52,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
     private final String variables;
     private final boolean doDestroy;
+    private final boolean doGetUpdate;
     private final Configuration config;
     private final String terraformInstallation;
     private FilePath stateFile;
@@ -66,9 +67,10 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
 
     @DataBoundConstructor
-    public TerraformBuildWrapper(String variables, String terraformInstallation, boolean doDestroy, Configuration config) {
+    public TerraformBuildWrapper(String variables, String terraformInstallation, boolean doGetUpdate, boolean doDestroy, Configuration config) {
         this.config = config;
         this.doDestroy = doDestroy;
+        this.doGetUpdate = doGetUpdate;
         this.variables = variables;
         this.terraformInstallation = terraformInstallation;
     }
@@ -98,7 +100,17 @@ public class TerraformBuildWrapper extends BuildWrapper {
         return this.config.getValue();
     }
 
+
+    public boolean doGetUpdate() {
+        return this.doGetUpdate;
+    }
+
+
+    public boolean getDoGetUpdate() {
+        return this.doGetUpdate;
+    }
     
+
     public boolean doDestroy() {
         return this.doDestroy;
     }
@@ -147,41 +159,60 @@ public class TerraformBuildWrapper extends BuildWrapper {
         return executablePath;
     }
 
+    public void executeGet(AbstractBuild build, final Launcher launcher, final BuildListener listener) throws Exception {
+        ArgumentListBuilder args = new ArgumentListBuilder();
+        EnvVars env = build.getEnvironment(listener);
+        setupWorkspace(build, env);
+
+        String executable = getExecutable(env, listener, launcher);
+        args.add(executable);
+
+        args.add("get");
+
+        if (doGetUpdate) {
+            args.add("-update");
+        }
+
+        LOGGER.info("Launching Terraform Get: "+args.toString());
+
+        int result = launcher.launch().pwd(workspacePath.getRemote()).cmds(args).stdout(listener).join();
+
+        if (result != 0) {
+            throw new Exception("Terraform Get failed: "+ result);
+        }
+    }
+
+    public void executeApply(AbstractBuild build, final Launcher launcher, final BuildListener listener) throws Exception {
+        ArgumentListBuilder args = new ArgumentListBuilder();
+        EnvVars env = build.getEnvironment(listener);
+        workspacePath = new FilePath(build.getWorkspace(), WORK_DIR_NAME);
+
+        String executable = getExecutable(env, listener, launcher);
+        args.add(executable);
+
+        args.add("apply");
+        args.add("-input=false");
+        args.add("-state="+stateFile.getRemote());
+
+        if (!isNullOrEmpty(getVariables())) {
+            variablesFile = workingDirectory.createTextTempFile("variables", ".tfvars", evalEnvVars(getVariables(), env));
+            args.add("-var-file="+variablesFile.getRemote());
+        }
+
+        LOGGER.info("Launching Terraform Apply: "+args.toString());
+
+        int result = launcher.launch().pwd(workspacePath.getRemote()).cmds(args).stdout(listener).join();
+
+        if (result != 0) {
+            throw new Exception("Terraform Apply failed: "+ result);
+        }
+    }
 
     @Override
     public Environment setUp(AbstractBuild build, final Launcher launcher, final BuildListener listener) throws IOException, InterruptedException {
-
-        ArgumentListBuilder args = new ArgumentListBuilder();
-            
         try {
-            EnvVars env = build.getEnvironment(listener);
-
-            String executable = getExecutable(env, listener, launcher);
-
-            args.add(executable);
-
-            setupWorkspace(build, env);
-
-            args.add("apply");
-
-            args.add("-input=false");
-
-            args.add("-state="+stateFile.getRemote());
-
-            if (!isNullOrEmpty(getVariables())) {
-                variablesFile = workingDirectory.createTextTempFile("variables", ".tfvars", evalEnvVars(getVariables(), env));
-                args.add("-var-file="+variablesFile.getRemote());
-            }
-
-            LOGGER.info("Launching Terraform: "+args.toString());
-
-            int result = launcher.launch().pwd(workspacePath.getRemote()).cmds(args).stdout(listener).join();
-
-            if (result != 0) {
-                deleteTemporaryFiles();
-                return null;
-            }
-    
+            executeGet(build, launcher, listener);
+            executeApply(build, launcher, listener); 
         } catch (Exception ex) {
             LOGGER.severe(exceptionToString(ex));
             listener.fatalError(exceptionToString(ex));
