@@ -185,7 +185,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
     public void executeApply(AbstractBuild build, final Launcher launcher, final BuildListener listener) throws Exception {
         ArgumentListBuilder args = new ArgumentListBuilder();
         EnvVars env = build.getEnvironment(listener);
-        workspacePath = new FilePath(build.getWorkspace(), WORK_DIR_NAME);
+        setupWorkspace(build, env);
 
         String executable = getExecutable(env, listener, launcher);
         args.add(executable);
