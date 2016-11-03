@@ -1,5 +1,5 @@
 package org.jenkinsci.plugins.terraform.TerraformBuildWrapper;
-                                                                               
+
 f = namespace('/lib/form')
 
 
@@ -14,14 +14,18 @@ f.block() {
                 f.checkbox();
             }
 
+            f.entry(field:'doNotApply', title: _('Do not apply automatically'), description: 'Do everything except apply') {
+                f.checkbox();
+            }
+
             f.radioBlock(checked: descriptor.isInlineConfigChecked(instance), name: 'config', value: 'inline', title: 'Configuration Text') {
-                f.entry(title: 'Terraform Text Configuration', field: 'inlineConfig', description: 'Inline configuration') { 
-                    f.textarea(); 
+                f.entry(title: 'Terraform Text Configuration', field: 'inlineConfig', description: 'Inline configuration') {
+                    f.textarea();
                 }
             }
             f.radioBlock(checked: descriptor.isFileConfigChecked(instance), name: 'config', value: 'file', title: 'Configuration Path') {
-                f.entry(title: 'Terraform File Configuration', field: 'fileConfig', description: 'Relative Path to workspace directory containing configuration files') { 
-                    f.textbox(); 
+                f.entry(title: 'Terraform File Configuration', field: 'fileConfig', description: 'Relative Path to workspace directory containing configuration files') {
+                    f.textbox();
                 }
             }
 
@@ -37,4 +41,3 @@ f.block() {
         }
     }
 }
-

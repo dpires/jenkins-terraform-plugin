@@ -16,6 +16,7 @@ import hudson.model.Computer;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.AbstractProject;
+import hudson.model.EnvironmentContributingAction;
 
 import hudson.model.Descriptor.FormException;
 
@@ -46,6 +47,36 @@ import java.io.StringWriter;
 import java.io.FileNotFoundException;
 
 
+class VariableInjectionAction implements EnvironmentContributingAction {
+
+    private String key;
+    private String value;
+
+    public VariableInjectionAction(String key, String value) {
+        this.key = key;
+        this.value = value;
+    }
+
+    public void buildEnvVars(AbstractBuild build, EnvVars envVars) {
+
+        if (envVars != null && key != null && value != null) {
+            envVars.put(key, value);
+        }
+    }
+
+    public String getDisplayName() {
+        return "VariableInjectionAction";
+    }
+
+    public String getIconFileName() {
+        return null;
+    }
+
+    public String getUrlName() {
+        return null;
+    }
+}
+
 
 
 public class TerraformBuildWrapper extends BuildWrapper {
@@ -53,6 +84,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
     private final String variables;
     private final boolean doDestroy;
     private final boolean doGetUpdate;
+    private final boolean doNotApply;
     private final Configuration config;
     private final String terraformInstallation;
     private FilePath stateFile;
@@ -67,10 +99,11 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
 
     @DataBoundConstructor
-    public TerraformBuildWrapper(String variables, String terraformInstallation, boolean doGetUpdate, boolean doDestroy, Configuration config) {
+    public TerraformBuildWrapper(String variables, String terraformInstallation, boolean doGetUpdate, boolean doNotApply, boolean doDestroy, Configuration config) {
         this.config = config;
         this.doDestroy = doDestroy;
         this.doGetUpdate = doGetUpdate;
+        this.doNotApply = doNotApply;
         this.variables = variables;
         this.terraformInstallation = terraformInstallation;
     }
@@ -109,7 +142,17 @@ public class TerraformBuildWrapper extends BuildWrapper {
     public boolean getDoGetUpdate() {
         return this.doGetUpdate;
     }
-    
+
+
+    public boolean doNotApply() {
+        return this.doNotApply;
+    }
+
+
+    public boolean getdoNotApply() {
+        return this.doNotApply;
+    }
+
 
     public boolean doDestroy() {
         return this.doDestroy;
@@ -144,7 +187,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
 
     @Override
     public DescriptorImpl getDescriptor() {
-        return (DescriptorImpl) super.getDescriptor();        
+        return (DescriptorImpl) super.getDescriptor();
     }
 
 
@@ -211,14 +254,27 @@ public class TerraformBuildWrapper extends BuildWrapper {
     public Environment setUp(AbstractBuild build, final Launcher launcher, final BuildListener listener) throws IOException, InterruptedException {
         try {
             executeGet(build, launcher, listener);
-            executeApply(build, launcher, listener); 
+            // get executable and var-file from environment
+            EnvVars env = build.getEnvironment(listener);
+            String executable = getExecutable(env, listener, launcher);
+            variablesFile = workingDirectory.createTextTempFile("variables", ".tfvars", evalEnvVars(getVariables(), env));
+            // Create actions to inject environment variables
+            VariableInjectionAction tfbinAction = new VariableInjectionAction("TF_BIN", executable);
+            VariableInjectionAction tfvarAction = new VariableInjectionAction("TF_VAR", variablesFile.getRemote());
+            // Inject environment variables
+            build.addAction(tfbinAction);
+            build.addAction(tfvarAction);
+
+            if (! doNotApply) {
+              executeApply(build, launcher, listener);
+            }
         } catch (Exception ex) {
             LOGGER.severe(exceptionToString(ex));
             listener.fatalError(exceptionToString(ex));
             deleteTemporaryFiles();
             return null;
         }
-        
+
         return new Environment() {
 
             @Override
@@ -340,7 +396,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
         return writer.toString();
     }
 
-    
+
     @Extension
     public static final class DescriptorImpl extends BuildWrapperDescriptor {
 
@@ -358,7 +414,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
             return this.installations;
         }
 
-    
+
         public void setInstallations(TerraformInstallation[] installations) {
             this.installations = installations;
             save();
@@ -373,11 +429,11 @@ public class TerraformBuildWrapper extends BuildWrapper {
             return m;
         }
 
-        
+
         public boolean isInlineConfigChecked(TerraformBuildWrapper instance) {
             boolean result = true;
             if (instance != null)
-                return (instance.getInlineConfig() != null); 
+                return (instance.getInlineConfig() != null);
 
             return result;
         }
@@ -386,7 +442,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
         public boolean isFileConfigChecked(TerraformBuildWrapper instance) {
             boolean result = false;
             if (instance != null)
-                return (instance.getFileConfig() != null); 
+                return (instance.getFileConfig() != null);
 
             return result;
         }
@@ -395,7 +451,7 @@ public class TerraformBuildWrapper extends BuildWrapper {
         public boolean isApplicable(AbstractProject<?, ?> project) {
             return true;
         }
-    
+
 
         public String getDisplayName() {
             return Messages.BuildWrapperName();
