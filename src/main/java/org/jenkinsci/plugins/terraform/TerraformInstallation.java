@@ -11,11 +11,14 @@ import hudson.remoting.Callable;
 
 import hudson.model.Node;
 import hudson.model.TaskListener;
+import hudson.model.EnvironmentSpecific;
 
 import hudson.tools.ToolProperty;
 import hudson.tools.ToolInstaller;
 import hudson.tools.ToolDescriptor;
 import hudson.tools.ToolInstallation;
+
+import hudson.slaves.NodeSpecific;
 
 import jenkins.model.Jenkins;
 
@@ -25,13 +28,16 @@ import java.util.List;
 import java.util.Collections;
 
 import java.io.File;
+import java.io.Serializable;
 import java.io.IOException;
 import java.io.FileNotFoundException;
 
 
 
 
-public class TerraformInstallation extends ToolInstallation {
+public class TerraformInstallation extends ToolInstallation implements EnvironmentSpecific<TerraformInstallation>, NodeSpecific<TerraformInstallation>, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private static final String UNIX_EXECUTABLE = "terraform";
     private static final String WINDOWS_EXECUTABLE = "terraform.exe";
