@@ -34,7 +34,7 @@ jenkinsPlugin {
     coreVersion = "1.580"
     shortName = "terraform"
     displayName = "Terraform Plugin"
-    url = "https://wiki.jenkins-ci.org/display/JENKINS/Terraform+Plugin"
+    url = "https://github.com/jenkinsci/terraform-plugin"
     gitHubUrl = "https://github.com/jenkinsci/terraform-plugin.git"
     developers {
         developer {
