@@ -1,6 +1,10 @@
-# jenkins-terraform-plugin
+Terraform plugin
+================
 
-[![Build Status](https://jenkins.ci.cloudbees.com/buildStatus/icon?job=plugins/terraform-plugin)](https://jenkins.ci.cloudbees.com/job/plugins/job/terraform-plugin/)
+[![Jenkins Plugin](https://img.shields.io/jenkins/plugin/v/terraform.svg)](https://plugins.jenkins.io/terraform)
+[![Jenkins Plugin Installs](https://img.shields.io/jenkins/plugin/i/terraform.svg?color=blue)](https://plugins.jenkins.io/terraform)
+[![GitHub release](https://img.shields.io/github/release/jenkinsci/terraform-plugin.svg?label=changelog)](https://github.com/jenkinsci/terraform-plugin/releases/latest)
+
 
 ## Usage
 
