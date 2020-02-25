@@ -1,6 +1,5 @@
 package org.jenkinsci.plugins.terraform;
 
-
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -22,6 +21,7 @@ import hudson.slaves.NodeSpecific;
 
 import jenkins.model.Jenkins;
 
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.util.List;
@@ -31,9 +31,6 @@ import java.io.File;
 import java.io.Serializable;
 import java.io.IOException;
 import java.io.FileNotFoundException;
-
-
-
 
 public class TerraformInstallation extends ToolInstallation implements EnvironmentSpecific<TerraformInstallation>, NodeSpecific<TerraformInstallation>, Serializable {
 
@@ -56,6 +53,16 @@ public class TerraformInstallation extends ToolInstallation implements Environme
 
     public TerraformInstallation forEnvironment(EnvVars environment) {
         return new TerraformInstallation(getName(), environment.expand(getHome()), getProperties().toList());
+    }
+
+
+    @Override
+    public void buildEnvVars(EnvVars env) {
+        String home = getHome();
+        if (home == null) {
+            return;
+        }
+        env.put("PATH+TERRAFORM", home);
     }
 
     
@@ -89,9 +96,10 @@ public class TerraformInstallation extends ToolInstallation implements Environme
 
     protected String getExecutableFilename() {
         return Functions.isWindows() ? WINDOWS_EXECUTABLE : UNIX_EXECUTABLE;
-    } 
+    }
 
 
+    @Symbol("terraform")
     @Extension
     public static class DescriptorImpl extends ToolDescriptor<TerraformInstallation> {
     
